@@ -1,58 +1,57 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node'
-
 const UPSTREAM = 'https://api.weather.yandex.ru'
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse,
-): Promise<void> {
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
-    res.status(405).setHeader('Allow', 'GET, HEAD').end('Method Not Allowed')
-    return
-  }
+export default {
+  async fetch(request: Request): Promise<Response> {
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      return new Response('Method Not Allowed', {
+        status: 405,
+        headers: { Allow: 'GET, HEAD' },
+      })
+    }
 
-  const key = process.env.YANDEX_WEATHER_KEY
-  if (!key) {
-    res
-      .status(503)
-      .setHeader('Content-Type', 'application/json; charset=utf-8')
-      .end(
-        JSON.stringify({
+    const key = process.env.YANDEX_WEATHER_KEY
+    if (!key) {
+      return Response.json(
+        {
           error: 'YANDEX_WEATHER_KEY is not set in Vercel Environment Variables',
-        }),
+        },
+        { status: 503 },
       )
-    return
-  }
+    }
 
-  const rawUrl = req.url ?? '/'
-  const q = rawUrl.indexOf('?')
-  const pathname = q >= 0 ? rawUrl.slice(0, q) : rawUrl
-  const search = q >= 0 ? rawUrl.slice(q) : ''
+    const url = new URL(request.url)
+    const pathname = url.pathname
+    const search = url.search
 
-  const prefix = '/api/yandex'
-  let rest = pathname.startsWith(prefix) ? pathname.slice(prefix.length) : pathname
-  if (!rest || rest === '') rest = '/'
-  if (!rest.startsWith('/')) rest = `/${rest}`
+    const prefix = '/api/yandex'
+    let rest = pathname.startsWith(prefix) ? pathname.slice(prefix.length) : pathname
+    if (!rest || rest === '') rest = '/'
+    if (!rest.startsWith('/')) rest = `/${rest}`
 
-  const targetUrl = `${UPSTREAM}${rest}${search}`
+    const targetUrl = `${UPSTREAM}${rest}${search}`
 
-  const upstream = await fetch(targetUrl, {
-    method: req.method,
-    headers: {
-      Accept: 'application/json',
-      'X-Yandex-Weather-Key': key,
-    },
-  })
+    const upstream = await fetch(targetUrl, {
+      method: request.method,
+      headers: {
+        Accept: 'application/json',
+        'X-Yandex-Weather-Key': key,
+      },
+    })
 
-  const ct =
-    upstream.headers.get('content-type') ?? 'application/json; charset=utf-8'
-  res.status(upstream.status).setHeader('Content-Type', ct)
+    const ct =
+      upstream.headers.get('content-type') ?? 'application/json; charset=utf-8'
 
-  if (req.method === 'HEAD') {
-    res.end()
-    return
-  }
+    if (request.method === 'HEAD') {
+      return new Response(null, {
+        status: upstream.status,
+        headers: { 'Content-Type': ct },
+      })
+    }
 
-  const buf = Buffer.from(await upstream.arrayBuffer())
-  res.send(buf)
+    const body = await upstream.arrayBuffer()
+    return new Response(body, {
+      status: upstream.status,
+      headers: { 'Content-Type': ct },
+    })
+  },
 }
