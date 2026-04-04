@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+@layer base {
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
+@media (max-width: 805px) {
+  html {
+    overflow-x: hidden;
+  }
+  .ww-viewport {
+    overflow-x: hidden;
+  }
+  .ww-scale {
+    width: 805px;
+    margin-inline: auto;
+    zoom: calc(100vw / 805px);
+  }
+}
