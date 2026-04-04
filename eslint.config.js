@@ -26,13 +26,4 @@ export default defineConfig([
       'react-hooks/exhaustive-deps': 'off',
     },
   },
-  {
-    files: ['api/**/*.ts'],
-    languageOptions: {
-      globals: globals.node,
-    },
-    rules: {
-      'react-refresh/only-export-components': 'off',
-    },
-  },
 ])
